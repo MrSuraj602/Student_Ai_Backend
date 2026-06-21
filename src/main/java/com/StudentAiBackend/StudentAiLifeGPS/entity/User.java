@@ -84,6 +84,22 @@ public class User {
     private boolean diagnosticComplete = false;
     private int careerReadyScore = 0;
 
+    public enum ProfileStatus {
+        NEW,
+        PROCESSING,
+        ACTIVE
+    }
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "profile_status")
+    private ProfileStatus profileStatus = ProfileStatus.NEW;
+
+    private LocalDateTime onboardingCompletedAt;
+
+    public boolean isOnboardingCompleted() {
+        return this.profileStatus == ProfileStatus.ACTIVE;
+    }
+
     private String otpCode;
     private LocalDateTime otpExpiry;
     private boolean active = false;

@@ -21,6 +21,6 @@ public class ProfileController {
         if (principal == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
-        return ResponseEntity.ok(profileService.getStudentProfileState(principal));
+        return ResponseEntity.ok(profileService.getProfileState(principal));
     }
 }

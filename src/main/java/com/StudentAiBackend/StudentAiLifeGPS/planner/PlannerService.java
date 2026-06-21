@@ -176,115 +176,129 @@ public class PlannerService {
         User persistentUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        System.out.println("[PlannerService] orchestrateOnboarding: Cleaning up old structures...");
-        // 1. Cleanup old data
         try {
-            userGoalRepository.deleteByUser(persistentUser);
-            userSkillRepository.deleteByUser(persistentUser);
-            userScheduleRepository.deleteByUser(persistentUser);
-            userNodeProgressRepository.deleteByUser(persistentUser);
-            roadmapNodeRepository.deleteByUser(persistentUser);
-            
-            List<DailyTask> existingTasks = dailyTaskRepository.findByUser(persistentUser);
-            for (DailyTask t : existingTasks) {
-                dailyTaskModuleRepository.deleteByDailyTask(t);
+            persistentUser.setProfileStatus(User.ProfileStatus.PROCESSING);
+            userRepository.save(persistentUser);
+
+            System.out.println("[PlannerService] orchestrateOnboarding: Cleaning up old structures...");
+            // 1. Cleanup old data
+            try {
+                userGoalRepository.deleteByUser(persistentUser);
+                userSkillRepository.deleteByUser(persistentUser);
+                userScheduleRepository.deleteByUser(persistentUser);
+                userNodeProgressRepository.deleteByUser(persistentUser);
+                roadmapNodeRepository.deleteByUser(persistentUser);
+                
+                List<DailyTask> existingTasks = dailyTaskRepository.findByUser(persistentUser);
+                for (DailyTask t : existingTasks) {
+                    dailyTaskModuleRepository.deleteByDailyTask(t);
+                }
+                dailyTaskRepository.deleteByUser(persistentUser);
+                moduleMessageRepository.deleteByUserId(persistentUser.getId());
+                
+                // Delete existing persona
+                studentPersonaRepository.deleteByUser(persistentUser);
+            } catch (Exception e) {
+                System.err.println("[PlannerService] Cleanup error: " + e.getMessage());
             }
-            dailyTaskRepository.deleteByUser(persistentUser);
-            moduleMessageRepository.deleteByUserId(persistentUser.getId());
-            
-            // Delete existing persona
-            studentPersonaRepository.deleteByUser(persistentUser);
-        } catch (Exception e) {
-            System.err.println("[PlannerService] Cleanup error: " + e.getMessage());
-        }
 
-        // 2. Map and save new basic fields on User
-        List<String> goals = request.getGoals() != null ? request.getGoals() : Collections.emptyList();
-        String primaryGoal = goals.isEmpty() ? "General Development" : goals.get(0);
+            // 2. Map and save new basic fields on User
+            List<String> goals = request.getGoals() != null ? request.getGoals() : Collections.emptyList();
+            String primaryGoal = goals.isEmpty() ? "General Development" : goals.get(0);
 
-        if (request.getGoals() != null) {
-            for (String goalName : request.getGoals()) {
-                UserGoal goal = new UserGoal();
-                goal.setUser(persistentUser);
-                goal.setGoalName(goalName);
-                userGoalRepository.save(goal);
+            if (request.getGoals() != null) {
+                for (String goalName : request.getGoals()) {
+                    UserGoal goal = new UserGoal();
+                    goal.setUser(persistentUser);
+                    goal.setGoalName(goalName);
+                    userGoalRepository.save(goal);
+                }
             }
-        }
 
-        List<String> skillNames = new ArrayList<>();
-        if (request.getSkills() != null) {
-            for (PlannerRequest.SkillDto skillDto : request.getSkills()) {
-                UserSkill skill = new UserSkill();
-                skill.setUser(persistentUser);
-                skill.setSkillName(skillDto.getSkillName());
-                skill.setCurrentLevel(skillDto.getCurrentLevel());
-                skill.setTargetLevel(skillDto.getTargetLevel());
-                skill.setStatus(skillDto.getStatus() != null ? skillDto.getStatus() : "Not started");
-                userSkillRepository.save(skill);
-                skillNames.add(skillDto.getSkillName());
+            List<String> skillNames = new ArrayList<>();
+            if (request.getSkills() != null) {
+                for (PlannerRequest.SkillDto skillDto : request.getSkills()) {
+                    UserSkill skill = new UserSkill();
+                    skill.setUser(persistentUser);
+                    skill.setSkillName(skillDto.getSkillName());
+                    skill.setCurrentLevel(skillDto.getCurrentLevel());
+                    skill.setTargetLevel(skillDto.getTargetLevel());
+                    skill.setStatus(skillDto.getStatus() != null ? skillDto.getStatus() : "Not started");
+                    userSkillRepository.save(skill);
+                    skillNames.add(skillDto.getSkillName());
+                }
             }
-        }
 
-        if (request.getSchedule() != null) {
-            for (PlannerRequest.ScheduleDto scheduleDto : request.getSchedule()) {
-                UserSchedule schedule = new UserSchedule();
-                schedule.setUser(persistentUser);
-                schedule.setDay(scheduleDto.getDay());
-                schedule.setAvailableHours(scheduleDto.getAvailableHours());
-                userScheduleRepository.save(schedule);
+            if (request.getSchedule() != null) {
+                for (PlannerRequest.ScheduleDto scheduleDto : request.getSchedule()) {
+                    UserSchedule schedule = new UserSchedule();
+                    schedule.setUser(persistentUser);
+                    schedule.setDay(scheduleDto.getDay());
+                    schedule.setAvailableHours(scheduleDto.getAvailableHours());
+                    userScheduleRepository.save(schedule);
+                }
             }
-        }
 
-        // Save academic profile details
-        Map<String, Object> profileMap = request.getProfile() != null ? request.getProfile() : Collections.emptyMap();
-        persistentUser.setFullName((String) profileMap.getOrDefault("name", persistentUser.getUsername()));
-        try {
-            Object ageVal = profileMap.get("age");
-            if (ageVal != null) {
-                persistentUser.setAge(Integer.parseInt(ageVal.toString()));
-            } else {
+            // Save academic profile details
+            Map<String, Object> profileMap = request.getProfile() != null ? request.getProfile() : Collections.emptyMap();
+            persistentUser.setFullName((String) profileMap.getOrDefault("name", persistentUser.getUsername()));
+            try {
+                Object ageVal = profileMap.get("age");
+                if (ageVal != null) {
+                    persistentUser.setAge(Integer.parseInt(ageVal.toString()));
+                } else {
+                    persistentUser.setAge(20);
+                }
+            } catch (Exception ex) {
                 persistentUser.setAge(20);
             }
-        } catch (Exception ex) {
-            persistentUser.setAge(20);
+            persistentUser.setCountry((String) profileMap.getOrDefault("country", "India"));
+            persistentUser.setEducationCategory((String) profileMap.getOrDefault("education", "Other"));
+            persistentUser.setPreferredLearningTime((String) profileMap.getOrDefault("preferredLearningTime", "Night"));
+            persistentUser.setDeadlineType((String) profileMap.getOrDefault("deadlineType", "Custom"));
+            persistentUser.setTargetCareer(primaryGoal);
+            persistentUser.setTargetCompletionDate(request.getDeadline() != null ? request.getDeadline() : LocalDate.now().plusWeeks(12).toString());
+            persistentUser.setLearningPreferences(request.getLearningPreferences() != null ? new ArrayList<>(request.getLearningPreferences()) : new ArrayList<>());
+
+            AcademicProfile ap = new AcademicProfile();
+            ap.setBoard((String) profileMap.get("board"));
+            ap.setStream((String) profileMap.get("stream"));
+            ap.setBranch((String) profileMap.get("branch"));
+            ap.setSemester((String) profileMap.get("semester"));
+            ap.setYear((String) profileMap.get("year"));
+            ap.setCurrentRole((String) profileMap.get("currentRole"));
+            ap.setExperience((String) profileMap.get("experience"));
+            ap.setClassName((String) profileMap.get("className"));
+            ap.setMedicalTrack((String) profileMap.get("medicalTrack"));
+            ap.setLawTrack((String) profileMap.get("lawTrack"));
+            persistentUser.setAcademicProfile(ap);
+
+            persistentUser.setDiagnosticComplete(true); // Diagnostic is complete since we generate AI analysis directly from onboarding
+
+            userRepository.save(persistentUser);
+
+            // 3. Trigger single AI Orchestration Call
+            System.out.println("[PlannerService] Calling Groq single orchestration...");
+            Map<String, Object> responseData = callGroqOrchestrator(persistentUser, skillNames, request);
+
+            // 4. Save results from the orchestrator JSON
+            if (responseData != null) {
+                saveOrchestrationData(persistentUser, responseData);
+            } else {
+                System.err.println("[PlannerService] Orchestration result is null! Triggering fallbacks...");
+                saveFallbackOrchestrationData(persistentUser, skillNames);
+            }
+
+            persistentUser.setProfileStatus(User.ProfileStatus.ACTIVE);
+            persistentUser.setOnboardingCompletedAt(LocalDateTime.now());
+            userRepository.save(persistentUser);
+            System.out.println("[PlannerService] orchestrateOnboarding completed successfully!");
+
+        } catch (Exception e) {
+            persistentUser.setProfileStatus(User.ProfileStatus.NEW);
+            userRepository.save(persistentUser);
+            throw e;
         }
-        persistentUser.setCountry((String) profileMap.getOrDefault("country", "India"));
-        persistentUser.setEducationCategory((String) profileMap.getOrDefault("education", "Other"));
-        persistentUser.setPreferredLearningTime((String) profileMap.getOrDefault("preferredLearningTime", "Night"));
-        persistentUser.setDeadlineType((String) profileMap.getOrDefault("deadlineType", "Custom"));
-        persistentUser.setTargetCareer(primaryGoal);
-        persistentUser.setTargetCompletionDate(request.getDeadline() != null ? request.getDeadline() : LocalDate.now().plusWeeks(12).toString());
-        persistentUser.setLearningPreferences(request.getLearningPreferences() != null ? new ArrayList<>(request.getLearningPreferences()) : new ArrayList<>());
-
-        AcademicProfile ap = new AcademicProfile();
-        ap.setBoard((String) profileMap.get("board"));
-        ap.setStream((String) profileMap.get("stream"));
-        ap.setBranch((String) profileMap.get("branch"));
-        ap.setSemester((String) profileMap.get("semester"));
-        ap.setYear((String) profileMap.get("year"));
-        ap.setCurrentRole((String) profileMap.get("currentRole"));
-        ap.setExperience((String) profileMap.get("experience"));
-        ap.setClassName((String) profileMap.get("className"));
-        ap.setMedicalTrack((String) profileMap.get("medicalTrack"));
-        ap.setLawTrack((String) profileMap.get("lawTrack"));
-        persistentUser.setAcademicProfile(ap);
-
-        persistentUser.setDiagnosticComplete(true); // Diagnostic is complete since we generate AI analysis directly from onboarding
-
-        userRepository.save(persistentUser);
-
-        // 3. Trigger single AI Orchestration Call
-        System.out.println("[PlannerService] Calling Groq single orchestration...");
-        Map<String, Object> responseData = callGroqOrchestrator(persistentUser, skillNames, request);
-
-        // 4. Save results from the orchestrator JSON
-        if (responseData != null) {
-            saveOrchestrationData(persistentUser, responseData);
-        } else {
-            System.err.println("[PlannerService] Orchestration result is null! Triggering fallbacks...");
-            saveFallbackOrchestrationData(persistentUser, skillNames);
-        }
-        System.out.println("[PlannerService] orchestrateOnboarding completed successfully!");
     }
 
     private Map<String, Object> callGroqOrchestrator(User user, List<String> skillNames, PlannerRequest request) {

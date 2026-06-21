@@ -43,6 +43,80 @@ public class ProfileService {
     @Value("${groq.api.key:}")
     private String groqApiKey;
 
+    public StudentProfileState getProfileState(User user) {
+        User persistentUser = userRepository.findById(user.getId())
+                .orElse(user);
+        
+        if (persistentUser.getProfileStatus() != User.ProfileStatus.ACTIVE) {
+            return StudentProfileState.builder()
+                    .initialized(false)
+                    .profileStatus(persistentUser.getProfileStatus().name())
+                    .isFirstLogin(persistentUser.getProfileStatus() == User.ProfileStatus.NEW)
+                    .persona(null)
+                    .dashboard(null)
+                    .planner(null)
+                    .roadmap(null)
+                    .careerReadiness(null)
+                    .recoveryPlan(null)
+                    .tasks(new ArrayList<>())
+                    .bosses(new ArrayList<>())
+                    .badges(new ArrayList<>())
+                    .studySessions(new ArrayList<>())
+                    .activityLogs(new ArrayList<>())
+                    .mentorContext(null)
+                    .xp(0)
+                    .level(0)
+                    .coins(0)
+                    .streak(0)
+                    .build();
+        }
+
+        Map<String, Object> map = getStudentProfileState(persistentUser);
+        
+        Map<String, Object> basicDetails = (Map<String, Object>) map.get("basicDetails");
+        int xp = basicDetails != null ? ((Number) basicDetails.getOrDefault("xp", 0)).intValue() : persistentUser.getXp();
+        int level = basicDetails != null ? ((Number) basicDetails.getOrDefault("level", 1)).intValue() : persistentUser.getLevel();
+        int coins = basicDetails != null ? ((Number) basicDetails.getOrDefault("coins", 0)).intValue() : persistentUser.getCoins();
+        int streak = basicDetails != null ? ((Number) basicDetails.getOrDefault("streak", 0)).intValue() : persistentUser.getStreak();
+
+        return StudentProfileState.builder()
+                .initialized(true)
+                .profileStatus("ACTIVE")
+                .isFirstLogin(false)
+                .persona(null)
+                .dashboard(null)
+                .planner(null)
+                .roadmap(null)
+                .careerReadiness(map.get("careerReadiness"))
+                .recoveryPlan(map.get("recoveryPlan"))
+                .tasks(new ArrayList<>())
+                .bosses((List<?>) map.get("bosses"))
+                .badges((List<?>) map.get("unlockedBadges"))
+                .studySessions((List<?>) map.get("studySessions"))
+                .activityLogs(new ArrayList<>())
+                .mentorContext(null)
+                .xp(xp)
+                .level(level)
+                .coins(coins)
+                .streak(streak)
+                .basicDetails(basicDetails)
+                .careerGoals((List<String>) map.get("careerGoals"))
+                .targetCareer((String) map.get("targetCareer"))
+                .selectedSkills((List<?>) map.get("selectedSkills"))
+                .availableHours((List<?>) map.get("availableHours"))
+                .learningPreferences((List<String>) map.get("learningPreferences"))
+                .targetCompletionDate((String) map.get("targetCompletionDate"))
+                .projectsInterestedIn((List<String>) map.get("projectsInterestedIn"))
+                .completedNodes((List<String>) map.get("completedNodes"))
+                .strengths((List<String>) map.get("strengths"))
+                .weaknesses((List<String>) map.get("weaknesses"))
+                .recommendedDomains((List<String>) map.get("recommendedDomains"))
+                .xpHistory((List<?>) map.get("xpHistory"))
+                .unlockedBadges((List<String>) map.get("unlockedBadges"))
+                .roadmapNodes((List<?>) map.get("roadmapNodes"))
+                .build();
+    }
+
     public Map<String, Object> getStudentProfileState(User user) {
         User persistentUser = userRepository.findById(user.getId())
                 .orElse(user);
@@ -275,6 +349,14 @@ public class ProfileService {
 
     private Map<String, Object> getOrGenerateRecoveryPlan(User user, List<StudySession> sessions, List<UserSkill> skills, Map<String, Object> crReport) {
         Map<String, Object> planMap = new HashMap<>();
+        if (sessions.isEmpty()) {
+            planMap.put("active", false);
+            planMap.put("headline", "Recovery Engine Inactive");
+            planMap.put("suggestions", new ArrayList<>());
+            planMap.put("timelineDelay", "None");
+            planMap.put("motivation", "Recovery activates only after study activity is detected.");
+            return planMap;
+        }
         if (crReport == null) {
             crReport = Collections.emptyMap();
         }
