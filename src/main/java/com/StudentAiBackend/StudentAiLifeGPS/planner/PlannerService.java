@@ -19,10 +19,12 @@ import com.StudentAiBackend.StudentAiLifeGPS.repository.UserNodeProgressReposito
 import com.StudentAiBackend.StudentAiLifeGPS.repository.DailyTaskRepository;
 import com.StudentAiBackend.StudentAiLifeGPS.repository.DailyTaskModuleRepository;
 import com.StudentAiBackend.StudentAiLifeGPS.entity.StudentPersona;
+import com.StudentAiBackend.StudentAiLifeGPS.entity.RecoveryPlan;
 import com.StudentAiBackend.StudentAiLifeGPS.entity.AcademicProfile;
 import com.StudentAiBackend.StudentAiLifeGPS.repository.StudentPersonaRepository;
 import com.StudentAiBackend.StudentAiLifeGPS.repository.ModuleMessageRepository;
 import com.StudentAiBackend.StudentAiLifeGPS.repository.StudySessionRepository;
+import com.StudentAiBackend.StudentAiLifeGPS.repository.RecoveryPlanRepository;
 import com.StudentAiBackend.StudentAiLifeGPS.service.ProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +58,7 @@ public class PlannerService {
     private final ProfileService profileService;
     private final ObjectMapper objectMapper;
     private final StudentPersonaRepository studentPersonaRepository;
+    private final RecoveryPlanRepository recoveryPlanRepository;
 
     @Value("${groq.api.key:}")
     private String groqApiKey;
