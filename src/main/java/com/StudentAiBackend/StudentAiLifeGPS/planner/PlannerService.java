@@ -459,7 +459,7 @@ public class PlannerService {
             Map<String, Object> personaMap = (Map<String, Object>) data.get("persona");
             Map<String, Object> analysisMap = (Map<String, Object>) data.get("analysis");
 
-            StudentPersona sp = new StudentPersona();
+            StudentPersona sp = studentPersonaRepository.findByUser(user).orElse(new StudentPersona());
             sp.setUser(user);
             sp.setPersonaName((String) personaMap.getOrDefault("personaName", "Dedicated Explorer"));
             sp.setIdentityTitle((String) personaMap.getOrDefault("identityTitle", "The Silent Builder"));
@@ -541,7 +541,7 @@ public class PlannerService {
             // 4. Save Recovery Plan
             Map<String, Object> recMap = (Map<String, Object>) data.get("recoveryPlan");
             if (recMap != null) {
-                RecoveryPlan rp = new RecoveryPlan();
+                RecoveryPlan rp = recoveryPlanRepository.findByUser(user).orElse(new RecoveryPlan());
                 rp.setUser(user);
                 rp.setActive(true);
                 rp.setHeadline((String) recMap.getOrDefault("headline", "AI Consistency Recovery"));
@@ -561,7 +561,7 @@ public class PlannerService {
     private void saveFallbackOrchestrationData(User user, List<String> skillNames) {
         System.out.println("[PlannerService] Triggering local fallback data synthesis...");
         // 1. Save Fallback StudentPersona
-        StudentPersona sp = new StudentPersona();
+        StudentPersona sp = studentPersonaRepository.findByUser(user).orElse(new StudentPersona());
         sp.setUser(user);
         
         String cat = user.getEducationCategory().toLowerCase();
@@ -698,7 +698,7 @@ public class PlannerService {
         }
 
         // 4. Save Fallback Recovery Plan
-        RecoveryPlan rp = new RecoveryPlan();
+        RecoveryPlan rp = recoveryPlanRepository.findByUser(user).orElse(new RecoveryPlan());
         rp.setUser(user);
         rp.setActive(true);
         rp.setHeadline("Inactivity Recovery Plan");
