@@ -23,6 +23,7 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "user_role")
     private String role; // ROLE_STUDENT or ROLE_ADMIN
 
     private int level = 1;
@@ -32,6 +33,18 @@ public class User {
     private String activeMission = "Complete Cognitive Diagnostics Quiz";
 
     @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "board", column = @Column(name = "academic_board")),
+        @AttributeOverride(name = "stream", column = @Column(name = "academic_stream")),
+        @AttributeOverride(name = "branch", column = @Column(name = "academic_branch")),
+        @AttributeOverride(name = "semester", column = @Column(name = "academic_semester")),
+        @AttributeOverride(name = "year", column = @Column(name = "academic_year")),
+        @AttributeOverride(name = "currentRole", column = @Column(name = "academic_current_role")),
+        @AttributeOverride(name = "experience", column = @Column(name = "academic_experience")),
+        @AttributeOverride(name = "className", column = @Column(name = "academic_class_name")),
+        @AttributeOverride(name = "medicalTrack", column = @Column(name = "academic_medical_track")),
+        @AttributeOverride(name = "lawTrack", column = @Column(name = "academic_law_track"))
+    })
     private AcademicProfile academicProfile;
 
     private String fullName;
