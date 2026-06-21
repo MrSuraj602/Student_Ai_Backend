@@ -1663,7 +1663,7 @@ public class PlannerService {
                 suggestions.add("Spread your skill practice across the week to avoid overload and maintain progress.");
             }
             if (goals.size() == 1) {
-                suggestions.add("Your current goal of " + goals.get(0) + " is best supported by hands-on projects in the selected skills.");
+                suggestions.add("Your current goal of " + goals.get(0).getGoalName() + " is best supported by hands-on projects in the selected skills.");
             }
         }
 
